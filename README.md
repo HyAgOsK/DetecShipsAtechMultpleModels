@@ -8,8 +8,8 @@ Detecção de objetos para empresa ATECH, com modelos Mobilev2 ssd fpn lite 320x
 - Yolov5n também contém todo passo a passo para execução do modelo com os resultados e como foi obtido.
 - EfficientDet0 também contém todo passo a passo para execução do modelo com resultados obtidos e o modelo tflite
 
-    
-      Observação: Até o momento o melhor modelo é o Yolov5n float32 ou float16, que obteve o melhor resultado
+
+> Observação: Até o momento o melhor modelo é o Yolov5n float32 ou float16, que obteve o melhor resultado
   
 - A base de dados vem do roboflow, basta exportar como jupyter que é gerado um link e assim conseguimos ter a base de dados no notebook colaboratory.
 
