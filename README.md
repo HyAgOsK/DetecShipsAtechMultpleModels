@@ -12,5 +12,17 @@ Detecção de objetos para empresa ATECH, com modelos Mobilev2 ssd fpn lite 320x
 > Observação: Até o momento o melhor modelo é o Yolov5n float32 ou float16, que obteve o melhor resultado
   
 - A base de dados vem do roboflow, basta exportar como jupyter que é gerado um link e assim conseguimos ter a base de dados no notebook colaboratory.
+> 
 
-
+- As classes estão organizadas da seguinte maneira:
+        "BACKGROUND": 0,
+        "BULK-CARRIER": 1,
+        "CONTAINER-SHIP": 2,
+        "GENERAL-CARGO": 3,
+        "OIL-PRODUCTS-TANKER": 4,
+        "PASSENGERS-SHIP": 5,
+        "TANKER": 6,
+        "TRAWLER": 7,
+        "TUG": 8,
+        "VEHICLES-CARRIER": 9,
+        "YACHT": 10
