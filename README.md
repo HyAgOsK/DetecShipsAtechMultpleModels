@@ -15,6 +15,7 @@ Detecção de objetos para empresa ATECH, com modelos Mobilev2 ssd fpn lite 320x
 > https://universe.roboflow.com/hyago-vieira/detectionship
 
 - As classes estão organizadas da seguinte maneira:
+  
         "BACKGROUND": 0,
         "BULK-CARRIER": 1,
         "CONTAINER-SHIP": 2,
