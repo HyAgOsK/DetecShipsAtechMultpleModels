@@ -21,9 +21,16 @@ window.onload = () => {
           console.log(data);
           // bytestring = data["status"];
           // image = bytestring.split("'")[1];
+          // image
           var img = document.createElement('img');
           img.src = data;
           document.body.appendChild(img);
+
+          // video
+          var video = document.createElement('video');
+          video.src = data;
+          document.body.appendChild(video);
+          
           $("#link").css("visibility", "visible");
           $("#download").attr("href", "static/" + data);
           console.log(data);
@@ -37,7 +44,7 @@ window.onload = () => {
       url: "/opencam",
       type: "GET",
       error: function (data) {
-        console.log("upload error", data);
+        console.log("upload error", data)
       },
       success: function (data) {
         console.log(data);

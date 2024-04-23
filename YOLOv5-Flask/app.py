@@ -3,7 +3,6 @@ from flask import Flask, render_template, request, redirect, send_file, url_for
 from werkzeug.utils import secure_filename, send_from_directory
 import os
 import subprocess
-import shutil
 
 app = Flask(__name__)
 
@@ -26,13 +25,9 @@ def detect():
     print(video)
     subprocess.run(['python', 'detect.py', '--source', os.path.join(uploads_dir, secure_filename(video.filename))])
 
-    output_image_path = os.path.join(uploads_dir, secure_filename(video.filename))
-    #obj = secure_filename(video.filename)
-    #return obj
-    shutil.move(os.path.join('static', secure_filename(video.filename)), output_image_path)
-
-    # Retorne o caminho da imagem de saída para o frontend
-    return output_image_path
+    # return os.path.join(uploads_dir, secure_filename(video.filename))
+    obj = secure_filename(video.filename)
+    return obj
 
 @app.route("/opencam", methods=['GET'])
 def opencam():
