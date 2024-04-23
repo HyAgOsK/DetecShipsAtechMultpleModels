@@ -10,7 +10,8 @@ Detecção de objetos para empresa ATECH, com modelos Mobilev2 ssd fpn lite 320x
 
 
 > Observação: Até o momento o melhor modelo é o Yolov5n float32 ou float16, que obteve o melhor resultado
-  
+> 
+> Foi feito um dashboard com Flask, todos as bibliotecas necessárias para implementação do dashboard estão em um arquivo txt, requirements.txt, algumas que derem problema podem ser instaladas manualmente sem o versionamento, basta instalar a versão mais recente.
 - A base de dados vem do roboflow, basta exportar como jupyter que é gerado um link e assim conseguimos ter a base de dados no notebook colaboratory.
 > https://universe.roboflow.com/hyago-vieira/detectionship
 
