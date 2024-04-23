@@ -21,6 +21,9 @@ window.onload = () => {
           console.log(data);
           // bytestring = data["status"];
           // image = bytestring.split("'")[1];
+          var img = document.createElement('img');
+          img.src = data;
+          document.body.appendChild(img);
           $("#link").css("visibility", "visible");
           $("#download").attr("href", "static/" + data);
           console.log(data);
@@ -53,8 +56,6 @@ function readUrl(input) {
       console.log(e.target);
 
       imagebox.attr("src", e.target.result);
-      //   imagebox.height(500);
-      //   imagebox.width(800);
     };
     reader.readAsDataURL(input.files[0]);
   }

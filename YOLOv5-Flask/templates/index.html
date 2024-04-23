@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>YOLO-Object Detection</title>
+    <title>Real time detection Vessel</title>
     <link rel="stylesheet" type="text/css" href="../static/index.css" />
     <script
       src="https://code.jquery.com/jquery-3.3.1.min.js"
@@ -13,15 +13,15 @@
   <body>
     <div class="App">
       <header class="App-header">
-        <p><u> Object Detection - YOLO </u></p>
-        <!-- <div className="pre_img">
-          <span><img id="imagebox" src="" /></span>
-        </div> -->
-        <!-- <video width="320" height="240" controls>
-          <source src="/static/video_1.mp4" type="video/mp4" />
+        <p><u> Dashboard para detecção em tempo real </u></p>
+        <div className="pre_img">
+          <span><img id="imagebox" class="uploadimage" src="" /></span>
+        </div>
+       <!-- <video width="320" height="240" controls>
+          <source src="/static/0.mp4" type="video/mp4" />
           Your browser does not support the video tag.
-        </video> -->
-        <button name="cam" class="button" id="opencam">Video Cam</button>
+        </video>-->
+        <button name="cam" class="button" id="opencam">Câmera em tempo real</button>
         <br/>
         <hr class="line" />
         <form>
@@ -32,10 +32,10 @@
             onchange="readUrl(this)"
           />
         </form>
-        <button name="send"  class="button" id="sendbutton">Send</button>
+        <button name="send"  class="button" id="sendbutton">Enviar</button>
         <br/>
         <div id="link">
-          <a href="" id="download" download>Download</a>
+          <a href="" id="download" download>Baixar arquivo</a>
         </div>
       </header>
     </div>
