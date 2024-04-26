@@ -22,7 +22,7 @@ def image_input(data_src):
     img_file = None
     if data_src == 'Sample data':
         img_path = glob.glob('data/sample_images/*')
-        img_slider = st.slider("Arraste para direita ou esquerda e veja outras imagens", min_value=1, max_value=len(img_path), step=1)
+        img_slider = st.slider("arraste para o lado e veja outras imagens", min_value=1, max_value=len(img_path), step=1)
         img_file = img_path[img_slider - 1]
     else:
         img_bytes = st.sidebar.file_uploader("Fazer upload de imagem", type=['png', 'jpeg', 'jpg'])
@@ -30,14 +30,15 @@ def image_input(data_src):
             img_file = "data/uploaded_data/upload." + img_bytes.name.split('.')[-1]
             Image.open(img_bytes).save(img_file)
 
+    
     if img_file:
         col1, col2 = st.columns(2)
         with col1:
             st.image(img_file, caption="Imagem selecionada")
         with col2:
-            img = infer_image(img_file)
+            img, class_name = infer_image(img_file)
             st.image(img, caption="Predição da imagem")
-
+            st.markdown(f'### Número de objetos contados:\n  #### {class_name}')
 
 def video_input(data_src):
     st.markdown("### Detecção de embarcações em vídeo")
@@ -62,7 +63,8 @@ def video_input(data_src):
             height = st.sidebar.number_input("Height", min_value=120, step=20, value=height)
 
         fps = 0
-        st1, st2, st3 = st.columns(3)
+        class_name = 0
+        st1, st2, st3, st4 = st.columns(4)
         with st1:
             st.markdown("## Height")
             st1_text = st.markdown(f"{height}")
@@ -72,6 +74,9 @@ def video_input(data_src):
         with st3:
             st.markdown("## FPS")
             st3_text = st.markdown(f"{fps}")
+        with st4:
+            st.markdown(' ## Número de objetos contados \n')
+            st4_text = st.markdown(f"#### {class_name}")
 
         st.markdown("---")
         output = st.empty()
@@ -84,7 +89,7 @@ def video_input(data_src):
                 break
             frame = cv2.resize(frame, (width, height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            output_img = infer_image(frame)
+            output_img, class_name = infer_image(frame)
             output.image(output_img)
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time)
@@ -92,6 +97,7 @@ def video_input(data_src):
             st1_text.markdown(f"**{height}**")
             st2_text.markdown(f"**{width}**")
             st3_text.markdown(f"**{fps:.2f}**")
+            st4_text.markdown(f"**{class_name}**")
 
         cap.release()
 
@@ -108,7 +114,8 @@ def camera_input(camera):
             height = st.sidebar.number_input("Height", min_value=120, step=20, value=height)
 
         fps = 0
-        st1, st2, st3 = st.columns(3)
+        class_name = 0
+        st1, st2, st3, st4 = st.columns(4)
         with st1:
             st.markdown("## Height")
             st1_text = st.markdown(f"{height}")
@@ -118,6 +125,9 @@ def camera_input(camera):
         with st3:
             st.markdown("## FPS")
             st3_text = st.markdown(f"{fps}")
+        with st4:
+            st.markdown(' ## Número de objetos contados \n')
+            st4_text = st.markdown(f' {class_name} ')
 
         st.markdown("---")
         output = st.empty()
@@ -130,7 +140,7 @@ def camera_input(camera):
                 break
             frame = cv2.resize(frame, (width, height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            output_img = infer_image(frame)
+            output_img, class_name = infer_image(frame)
             output.image(output_img)
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time)
@@ -138,6 +148,7 @@ def camera_input(camera):
             st1_text.markdown(f"**{height}**")
             st2_text.markdown(f"**{width}**")
             st3_text.markdown(f"**{fps:.2f}**")
+            st4_text.markdown(f"**{class_name}**")
 
         cap.release()
 
@@ -146,12 +157,37 @@ def infer_image(img, size=None):
     result = model(img, size=size) if size else model(img)
     result.render()
     image = Image.fromarray(result.ims[0])
-    return image
+    class_names = result.names
+
+    object_classes = {}
+
+    for detection in result.xyxy[0]:
+        class_index = int(detection[5]) 
+        class_name = class_names[class_index]  
+        object_classes[class_name] = object_classes.get(class_name, 0) + 1 
+
+    class_names_list = list(object_classes.keys())
+    counts_list = list(object_classes.values())
+
+    for  i in range(len(class_names_list)):
+        class_names_list[i] += " " + str(counts_list[i])
+    
+    class_names_result = "\n".join(class_names_list)
+
+    return image, class_names_result
+
+
+
+
+    
+
+    
+
 
 
 @st.cache_resource
 def load_model(path, device):
-    model_ = torch.hub.load('ultralytics/yolov5', 'custom', path=path, force_reload=True)
+    model_ = torch.hub.load('ultralytics/yolov5', 'custom', path=path, force_reload=False)
     model_.to(device)
     print("model to ", device)
     return model_
@@ -229,7 +265,7 @@ def main():
         elif input_option == 'video':
             video_input(data_src)
         else:  
-            camera_input(1)
+            camera_input(0)
 
 if __name__ == "__main__":
     try:
