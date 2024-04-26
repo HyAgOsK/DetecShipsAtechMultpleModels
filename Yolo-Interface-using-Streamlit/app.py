@@ -17,14 +17,15 @@ confidence = .25
 
 
 def image_input(data_src):
+    st.markdown("### Detecção de embarcações em imagens")
+
     img_file = None
     if data_src == 'Sample data':
-        # get all sample images
         img_path = glob.glob('data/sample_images/*')
-        img_slider = st.slider("Select a test image.", min_value=1, max_value=len(img_path), step=1)
+        img_slider = st.slider("Arraste para direita ou esquerda e veja outras imagens", min_value=1, max_value=len(img_path), step=1)
         img_file = img_path[img_slider - 1]
     else:
-        img_bytes = st.sidebar.file_uploader("Upload an image", type=['png', 'jpeg', 'jpg'])
+        img_bytes = st.sidebar.file_uploader("Fazer upload de imagem", type=['png', 'jpeg', 'jpg'])
         if img_bytes:
             img_file = "data/uploaded_data/upload." + img_bytes.name.split('.')[-1]
             Image.open(img_bytes).save(img_file)
@@ -32,18 +33,20 @@ def image_input(data_src):
     if img_file:
         col1, col2 = st.columns(2)
         with col1:
-            st.image(img_file, caption="Selected Image")
+            st.image(img_file, caption="Imagem selecionada")
         with col2:
             img = infer_image(img_file)
-            st.image(img, caption="Model prediction")
+            st.image(img, caption="Predição da imagem")
 
 
 def video_input(data_src):
+    st.markdown("### Detecção de embarcações em vídeo")
+
     vid_file = None
     if data_src == 'Sample data':
-        vid_file = "data/sample_videos/sample.mp4"
+        vid_file = "data/sample_videos/yacht2.mp4"
     else:
-        vid_bytes = st.sidebar.file_uploader("Upload a video", type=['mp4', 'mpv', 'avi'])
+        vid_bytes = st.sidebar.file_uploader("Fazer upload de um vídeo", type=['mp4', 'mpv', 'avi'])
         if vid_bytes:
             vid_file = "data/uploaded_data/upload." + vid_bytes.name.split('.')[-1]
             with open(vid_file, 'wb') as out:
@@ -93,6 +96,51 @@ def video_input(data_src):
         cap.release()
 
 
+def camera_input(camera):
+        
+        st.markdown("### Detecção de embarcações em tempo realamente")
+        cap = cv2.VideoCapture(camera)
+        custom_size = st.sidebar.checkbox("Custom frame size")
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if custom_size:
+            width = st.sidebar.number_input("Width", min_value=120, step=20, value=width)
+            height = st.sidebar.number_input("Height", min_value=120, step=20, value=height)
+
+        fps = 0
+        st1, st2, st3 = st.columns(3)
+        with st1:
+            st.markdown("## Height")
+            st1_text = st.markdown(f"{height}")
+        with st2:
+            st.markdown("## Width")
+            st2_text = st.markdown(f"{width}")
+        with st3:
+            st.markdown("## FPS")
+            st3_text = st.markdown(f"{fps}")
+
+        st.markdown("---")
+        output = st.empty()
+        prev_time = 0
+        curr_time = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                st.write("Can't read frame, stream ended? Exiting ....")
+                break
+            frame = cv2.resize(frame, (width, height))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            output_img = infer_image(frame)
+            output.image(output_img)
+            curr_time = time.time()
+            fps = 1 / (curr_time - prev_time)
+            prev_time = curr_time
+            st1_text.markdown(f"**{height}**")
+            st2_text.markdown(f"**{width}**")
+            st3_text.markdown(f"**{fps:.2f}**")
+
+        cap.release()
+
 def infer_image(img, size=None):
     model.conf = confidence
     result = model(img, size=size) if size else model(img)
@@ -132,48 +180,17 @@ def get_user_model():
                 model_file = model_file_
 
     return model_file
-
-
-class MyVideoTransformer(VideoTransformerBase):
-    def __init__(self, conf, model):
-        self.conf = conf
-        self.model = model
-
-    def recv(self, frame):
-        image = frame.to_ndarray(format="bgr24")
-        processed_image = self._display_detected_frames(image)
-        st.image(processed_image, caption='Detected Video', channels="BGR", use_column_width=True)
-
-    def _display_detected_frames(self, image):
-        orig_h, orig_w = image.shape[0:2]
-        width = 720  # Set the desired width for processing
-
-        # cv2.resize used in a forked thread may cause memory leaks
-        input = np.asarray(Image.fromarray(image).resize((width, int(width * orig_h / orig_w))))
-
-        if self.model is not None:
-            # Perform object detection using YOLO model
-            res = self.model.predict(input, conf=self.conf)
-
-            # Plot the detected objects on the video frame
-            res_plotted = res[0].plot()
-            return res_plotted
-        
-        return res_plotted
-    
     
 def main():
-    # global variables
     global model, confidence, cfg_model_path
 
-    st.title("Object Recognition Dashboard")
+    st.title("Dashboard")
 
-    st.sidebar.title("Settings")
+    st.sidebar.title("Configurações")
 
-    # upload model
-    model_src = st.sidebar.radio("Select yolov5 weight file", ["Use our demo model 5s", "Use your own model"])
-    # URL, upload file (max 200 mb)
-    if model_src == "Use your own model":
+    model_src = st.sidebar.radio("Selecione o tipo de arquivo de pesos do yolov5", ["Modelo padrão yolov5n", "Faça upload do seu modelo"])
+
+    if model_src == "Faça upload do seu modelo":
         user_model_path = get_user_model()
         if user_model_path:
             cfg_model_path = user_model_path
@@ -181,26 +198,21 @@ def main():
         st.sidebar.text(cfg_model_path.split("/")[-1])
         st.sidebar.markdown("---")
 
-    # check if model file is available
     if not os.path.isfile(cfg_model_path):
-        st.warning("Model file not available!!!, please added to the model folder.", icon="⚠️")
+        st.warning("Modelo não disponível!! por favor faça o upload do seu modelo.", icon="⚠️")
     else:
-        # device options
         if torch.cuda.is_available():
-            device_option = st.sidebar.radio("Select Device", ['cpu', 'cuda'], disabled=False, index=0)
+            device_option = st.sidebar.radio("Selecione o dispositivo para inferência", ['cpu', 'cuda'], disabled=False, index=0)
         else:
-            device_option = st.sidebar.radio("Select Device", ['cpu', 'cuda'], disabled=True, index=0)
+            device_option = st.sidebar.radio("Selecione o dispositivo para inferência", ['cpu', 'cuda'], disabled=True, index=0)
 
-        # load model
         model = load_model(cfg_model_path, device_option)
 
-        # confidence slider
-        confidence = st.sidebar.slider('Confidence', min_value=0.1, max_value=1.0, value=.45)
+        confidence = st.sidebar.slider('Confiança', min_value=0.1, max_value=1.0, value=.45)
 
-        # custom classes
-        if st.sidebar.checkbox("Custom Classes"):
+        if st.sidebar.checkbox("Classes customizadas"):
             model_names = list(model.names.values())
-            assigned_class = st.sidebar.multiselect("Select Classes", model_names, default=[model_names[0]])
+            assigned_class = st.sidebar.multiselect("Selecione as classes", model_names, default=[model_names[0]])
             classes = [model_names.index(name) for name in assigned_class]
             model.classes = classes
         else:
@@ -208,25 +220,16 @@ def main():
 
         st.sidebar.markdown("---")
 
-        # input options
-        input_option = st.sidebar.radio("Select input type: ", ['image', 'video', 'webcam'])
+        input_option = st.sidebar.radio("Selecione o tipo de entrada de dados: ", ['imagem', 'video', 'webcam'])
 
-        # input src option
-        data_src = st.sidebar.radio("Select input source: ", ['Sample data', 'Upload your own data'])
+        data_src = st.sidebar.radio("Adicione seu arquivo: ", ['Sample data', 'Upload your own data'])
 
-        if input_option == 'image':
+        if input_option == 'imagem':
             image_input(data_src)
         elif input_option == 'video':
             video_input(data_src)
-        else:  # webcam
-            st.sidebar.title("Webcam Object Detection")
-
-            webrtc_streamer(
-                key="example",
-                video_processor_factory=lambda: MyVideoTransformer(confidence, model),
-                rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-                media_stream_constraints={"video": True, "audio": False},
-            )    
+        else:  
+            camera_input(1)
 
 if __name__ == "__main__":
     try:
