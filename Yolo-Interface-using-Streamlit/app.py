@@ -6,23 +6,37 @@ import torch
 import cv2
 import os
 import time
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-import numpy as np
+from tracker import *
+
 
 st.set_page_config(layout="wide")
+st.markdown(
+    """
+    <style>
+  
+        p{
+            font-size: 22px;
+        }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 cfg_model_path = 'models/best.pt'
 model = None
 confidence = .25
-
+tracker = Tracker()
+global_ids_list = []
 
 def image_input(data_src):
     st.markdown("### Detecção de embarcações em imagens")
 
     img_file = None
-    if data_src == 'Sample data':
+    if data_src == 'Dado de amostra':
         img_path = glob.glob('data/sample_images/*')
-        img_slider = st.slider("arraste para o lado e veja outras imagens", min_value=1, max_value=len(img_path), step=1)
+        img_slider = st.slider("➤➤➤➤➤   ➤➤➤➤➤", min_value=1, max_value=len(img_path), step=1)
         img_file = img_path[img_slider - 1]
     else:
         img_bytes = st.sidebar.file_uploader("Fazer upload de imagem", type=['png', 'jpeg', 'jpg'])
@@ -31,20 +45,27 @@ def image_input(data_src):
             Image.open(img_bytes).save(img_file)
 
     
+
     if img_file:
         col1, col2 = st.columns(2)
         with col1:
             st.image(img_file, caption="Imagem selecionada")
         with col2:
-            img, class_name = infer_image(img_file)
+            img, class_name, id = infer_image(img_file)
             st.image(img, caption="Predição da imagem")
-            st.markdown(f'### Número de objetos contados:\n  #### {class_name}')
+            if class_name == '':
+                st.markdown(f'### Objetos detectados:\n #### Nenhum objeto detectado')
+            else:
+                st.markdown(f'### Objetos detectados:\n {class_name}')
+                st.markdown(f'Total de objetos: {len(id)}')
+
+                
 
 def video_input(data_src):
     st.markdown("### Detecção de embarcações em vídeo")
 
     vid_file = None
-    if data_src == 'Sample data':
+    if data_src == 'Dado de amostra':
         vid_file = "data/sample_videos/yacht2.mp4"
     else:
         vid_bytes = st.sidebar.file_uploader("Fazer upload de um vídeo", type=['mp4', 'mpv', 'avi'])
@@ -55,7 +76,7 @@ def video_input(data_src):
 
     if vid_file:
         cap = cv2.VideoCapture(vid_file)
-        custom_size = st.sidebar.checkbox("Custom frame size")
+        custom_size = st.sidebar.checkbox("Tamanho customizável")
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         if custom_size:
@@ -75,7 +96,7 @@ def video_input(data_src):
             st.markdown("## FPS")
             st3_text = st.markdown(f"{fps}")
         with st4:
-            st.markdown(' ## Número de objetos contados \n')
+            st.markdown(' ## Objetos Detectados \n')
             st4_text = st.markdown(f"#### {class_name}")
 
         st.markdown("---")
@@ -85,19 +106,22 @@ def video_input(data_src):
         while True:
             ret, frame = cap.read()
             if not ret:
-                st.write("Can't read frame, stream ended? Exiting ....")
+                st.write("Fim do vídeo? Saíndo ....")
                 break
             frame = cv2.resize(frame, (width, height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            output_img, class_name = infer_image(frame)
+            output_img, class_name, _ = infer_image(frame)
             output.image(output_img)
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time)
             prev_time = curr_time
-            st1_text.markdown(f"**{height}**")
-            st2_text.markdown(f"**{width}**")
-            st3_text.markdown(f"**{fps:.2f}**")
-            st4_text.markdown(f"**{class_name}**")
+            st1_text.markdown(f"### **{height}**")
+            st2_text.markdown(f"### **{width}**")
+            st3_text.markdown(f"### **{fps:.2f}**")
+            if class_name == '':
+                st4_text.markdown(f"### **Nenhum objeto detectado**")
+            else:
+                st4_text.markdown(f"### {class_name}")
 
         cap.release()
 
@@ -106,7 +130,7 @@ def camera_input(camera):
         
         st.markdown("### Detecção de embarcações em tempo realamente")
         cap = cv2.VideoCapture(camera)
-        custom_size = st.sidebar.checkbox("Custom frame size")
+        custom_size = st.sidebar.checkbox("Tamanho customizável")
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         if custom_size:
@@ -114,7 +138,7 @@ def camera_input(camera):
             height = st.sidebar.number_input("Height", min_value=120, step=20, value=height)
 
         fps = 0
-        class_name = 0
+        class_name = "Nenhum objeto detectado"
         st1, st2, st3, st4 = st.columns(4)
         with st1:
             st.markdown("## Height")
@@ -126,41 +150,56 @@ def camera_input(camera):
             st.markdown("## FPS")
             st3_text = st.markdown(f"{fps}")
         with st4:
-            st.markdown(' ## Número de objetos contados \n')
-            st4_text = st.markdown(f' {class_name} ')
+            st.markdown(' ## Objetos Detectados \n')
+            st4_text = st.markdown(f"{class_name}")
 
         st.markdown("---")
         output = st.empty()
         prev_time = 0
         curr_time = 0
+        
         while True:
             ret, frame = cap.read()
             if not ret:
-                st.write("Can't read frame, stream ended? Exiting ....")
+                st.write("Não existe mais frames, fim da captura. Saíndo ....")
                 break
             frame = cv2.resize(frame, (width, height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            output_img, class_name = infer_image(frame)
+            output_img, class_name, _ = infer_image(frame)
             output.image(output_img)
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time)
             prev_time = curr_time
-            st1_text.markdown(f"**{height}**")
-            st2_text.markdown(f"**{width}**")
-            st3_text.markdown(f"**{fps:.2f}**")
-            st4_text.markdown(f"**{class_name}**")
+            st1_text.markdown(f"### **{height}**")
+            st2_text.markdown(f"### **{width}**")
+            st3_text.markdown(f"### **{fps:.2f}**")
+            st4_text.markdown(f"### **{class_name}**")
 
         cap.release()
 
 def infer_image(img, size=None):
     model.conf = confidence
     result = model(img, size=size) if size else model(img)
+
+    global global_ids_list
+
+    list_ = []
+    for index, row in result.pandas().xyxy[0].iterrows():
+        x1=int(row['xmin']) 
+        y1=int(row['ymin'])
+        x2=int(row['xmax'])
+        y2=int(row['ymax'])
+        b=str(row['name'])
+        list_.append([x1,y1,x2,y2])
+
+    boxes_ids = tracker.update(list_)
+    global_ids_list.extend([box_id[-1] for box_id in boxes_ids])
     result.render()
     image = Image.fromarray(result.ims[0])
+
     class_names = result.names
 
     object_classes = {}
-
     for detection in result.xyxy[0]:
         class_index = int(detection[5]) 
         class_name = class_names[class_index]  
@@ -170,26 +209,20 @@ def infer_image(img, size=None):
     counts_list = list(object_classes.values())
 
     for  i in range(len(class_names_list)):
-        class_names_list[i] += " " + str(counts_list[i])
+        class_names_list[i] += " " + str(counts_list[i]) + str("\n")
     
     class_names_result = "\n".join(class_names_list)
-
-    return image, class_names_result
-
-
-
+    
+ 
 
     
-
+    return image, class_names_result, global_ids_list
     
-
-
 
 @st.cache_resource
 def load_model(path, device):
-    model_ = torch.hub.load('ultralytics/yolov5', 'custom', path=path, force_reload=False)
+    model_ = torch.hub.load('ultralytics/yolov5', 'custom', path=path, force_reload=True)
     model_.to(device)
-    print("model to ", device)
     return model_
 
 
@@ -200,10 +233,10 @@ def download_model(url):
 
 
 def get_user_model():
-    model_src = st.sidebar.radio("Model source", ["file upload", "url"])
+    model_src = st.sidebar.radio("Tipo", ["Enviar arquivo", "url"])
     model_file = None
-    if model_src == "file upload":
-        model_bytes = st.sidebar.file_uploader("Upload a model file", type=['pt'])
+    if model_src == "Enviar arquivo":
+        model_bytes = st.sidebar.file_uploader("Enviar modelo", type=['pt'])
         if model_bytes:
             model_file = "models/uploaded_" + model_bytes.name
             with open(model_file, 'wb') as out:
@@ -223,7 +256,7 @@ def main():
     st.title("Dashboard")
 
     st.sidebar.title("Configurações")
-
+    
     model_src = st.sidebar.radio("Selecione o tipo de arquivo de pesos do yolov5", ["Modelo padrão yolov5n", "Faça upload do seu modelo"])
 
     if model_src == "Faça upload do seu modelo":
@@ -258,7 +291,7 @@ def main():
 
         input_option = st.sidebar.radio("Selecione o tipo de entrada de dados: ", ['imagem', 'video', 'webcam'])
 
-        data_src = st.sidebar.radio("Adicione seu arquivo: ", ['Sample data', 'Upload your own data'])
+        data_src = st.sidebar.radio("Adicione seu arquivo: ", ['Dado de amostra', 'Envie seu arquivo'])
 
         if input_option == 'imagem':
             image_input(data_src)
