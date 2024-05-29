@@ -7,7 +7,7 @@ import cv2
 import os
 import time
 from tracker import *
-
+from streamlit_webrtc import webrtc_streamer
 
 st.set_page_config(layout="wide")
 st.markdown(
@@ -22,7 +22,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 
 cfg_model_path = 'models/best.pt'
 model = None
