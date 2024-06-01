@@ -1,0 +1,23 @@
+description: Ultralytics best model trained on /content/DetectVessel-2/data.yaml
+author: Ultralytics
+date: '2024-06-01T20:07:37.111041'
+version: 8.2.27
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 416
+- 416
+names:
+  0: BULK-CARRIER
+  1: CONTAINER-SHIP
+  2: GENERAL-CARGO
+  3: OIL-PRODUCTS-TANKER
+  4: PASSENGERS-SHIP
+  5: TANKER
+  6: TRAWLER
+  7: TUG
+  8: VEHICLES-CARRIER
+  9: YACHT
